@@ -1,0 +1,766 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2E6A4E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Plantas">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Plantas do Apartamento</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Albert+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: planta baixa como prancheta à esquerda, ficha da planta como painel lateral; agenda da semana embaixo. */
+:root{
+  --paper:#EDF0EA; --sheet:#F9FAF6; --ink:#1B2620; --muted:#5B695F; --line:#CBD3C9; --wall:#34423A;
+  --green:#2E6A4E; --green-soft:#D7E7DB; --sun:#D4931A; --sun-soft:#F5E4BC; --water:#26709B; --water-soft:#D6E7F1;
+  --warn:#A9601C; --bad:#B03838; --bad-soft:#F4DCDA; --door:#C9715A; --marker:#8DC27F; --marker-ink:#14301F;
+  --leaf:#3D8753; --leaf2:#68A963; --leafdark:#2A5E3B; --pot:#B9734F; --pot-rim:#A3613F; --flower:#C23B8A;
+  --f-display:"Young Serif", Georgia, serif; --f-body:"Albert Sans", system-ui, sans-serif; --f-mono:"IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --paper:#111714; --sheet:#19211D; --ink:#E3EAE4; --muted:#9AA79E; --line:#33403A; --wall:#B9C7BE;
+  --green:#7DC59A; --green-soft:#1D3828; --sun:#E8B24A; --sun-soft:#3A2F17; --water:#6CB3DD; --water-soft:#15303F;
+  --warn:#E39A55; --bad:#E57373; --bad-soft:#3B1F1F; --door:#B8644F; --marker:#5E9E55; --marker-ink:#0D1F13;
+  --leaf:#4E9A62; --leaf2:#7DBB72; --leafdark:#3A7A4D; --pot:#A8694A; --pot-rim:#8F5638; --flower:#D9559F; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --paper:#111714; --sheet:#19211D; --ink:#E3EAE4; --muted:#9AA79E; --line:#33403A; --wall:#B9C7BE;
+  --green:#7DC59A; --green-soft:#1D3828; --sun:#E8B24A; --sun-soft:#3A2F17; --water:#6CB3DD; --water-soft:#15303F;
+  --warn:#E39A55; --bad:#E57373; --bad-soft:#3B1F1F; --door:#B8644F; --marker:#5E9E55; --marker-ink:#0D1F13;
+  --leaf:#4E9A62; --leaf2:#7DBB72; --leafdark:#3A7A4D; --pot:#A8694A; --pot-rim:#8F5638; --flower:#D9559F; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+h1,h2,h3{font-family:var(--f-display);font-weight:400;text-wrap:balance;margin:0}
+h1{font-size:clamp(28px,4vw,40px);line-height:1.1}
+h2{font-size:22px}
+h3{font-size:18px}
+.eyebrow{font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px}
+header p{margin:6px 0 0;color:var(--muted);max-width:62ch}
+.season{display:flex;gap:10px;align-items:flex-start;background:var(--sheet);border:1px solid var(--line);border-radius:10px;padding:10px 14px;max-width:460px}
+.season b{font-family:var(--f-display);font-weight:400;font-size:17px}
+.season p{margin:2px 0 0;font-size:13.5px;color:var(--muted)}
+
+.grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.board{background:var(--sheet);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--muted);font:500 13px var(--f-body);padding:7px 11px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--sheet)}
+.seg button:focus-visible,.btn:focus-visible,.chip:focus-visible,select:focus-visible{outline:2px solid var(--water);outline-offset:2px}
+svg#mapa{width:100%;height:auto;display:block;touch-action:manipulation;user-select:none}
+svg#mapa.placing{cursor:crosshair}
+.room{fill:transparent;stroke:var(--wall);stroke-width:1.6}
+.rlabel{font:500 21px var(--f-body);fill:var(--muted);pointer-events:none}
+.win{fill:var(--sheet);stroke:var(--wall);stroke-width:1.2}
+.door{fill:var(--door);stroke:var(--wall);stroke-width:1}
+.sunpath{fill:none;stroke:var(--sun);stroke-width:2.5;stroke-dasharray:8 7}
+.sunbody{fill:var(--sun)}
+.sunray{stroke:var(--sun);stroke-width:3;stroke-linecap:round}
+.sunlbl{font:600 15px var(--f-body);fill:var(--sun)}
+.fridge{fill:var(--water-soft);stroke:var(--water);stroke-width:1.4}
+.fridge-t{font:500 12px var(--f-mono);fill:var(--water)}
+.mk{cursor:pointer}
+.mk circle.dot{fill:var(--marker);stroke:var(--sheet);stroke-width:3}
+.mk.sim circle.dot{fill:var(--sheet);stroke:var(--green);stroke-width:3;stroke-dasharray:6 4}
+.mk text{font:700 22px var(--f-body);fill:var(--marker-ink);text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.mk.sim text{fill:var(--green);font-size:17px}
+.mk .ring{fill:none;stroke-width:4}
+.mk.sel .halo{fill:none;stroke:var(--ink);stroke-width:2.5;stroke-dasharray:3 5}
+.mk .alert{fill:var(--bad);stroke:var(--sheet);stroke-width:2}
+.ghost{fill:none;stroke:var(--muted);stroke-width:2;stroke-dasharray:4 4}
+.ghostline{stroke:var(--muted);stroke-width:1.5;stroke-dasharray:4 4}
+.zoneinfo{font-size:13.5px;color:var(--muted);min-height:20px}
+.zoneinfo b{color:var(--ink);font-weight:600}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:14px;height:14px;border-radius:3px;display:inline-block;border:1px solid var(--line)}
+.banner{background:var(--ink);color:var(--sheet);border-radius:8px;padding:9px 12px;font-size:14px;display:flex;justify-content:space-between;gap:10px;align-items:center}
+.banner button{background:transparent;color:var(--sheet);border:1px solid currentColor;border-radius:6px;padding:4px 10px;font:500 13px var(--f-body);cursor:pointer}
+
+.panel{background:var(--sheet);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;min-width:0}
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tabs button{flex:1;border:0;background:transparent;padding:12px 8px;font:600 14px var(--f-body);color:var(--muted);cursor:pointer;border-bottom:2px solid transparent}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--green)}
+.pbody{padding:16px;display:flex;flex-direction:column;gap:16px}
+.list{display:flex;flex-direction:column;gap:6px;list-style:none;margin:0;padding:0}
+.row{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 10px;border-radius:9px;border:1px solid var(--line);background:transparent;width:100%;text-align:left;color:var(--ink);font:inherit;cursor:pointer}
+.row:hover{border-color:var(--green)}
+.num{width:30px;height:30px;border-radius:50%;background:var(--marker);color:var(--marker-ink);display:grid;place-items:center;font-weight:700;font-size:14px}
+.num.sim{background:transparent;border:2px dashed var(--green);color:var(--green);font-size:12px}
+.row small{display:block;color:var(--muted);font-size:12.5px}
+.pill{font-size:11.5px;font-weight:600;padding:3px 8px;border-radius:99px;white-space:nowrap}
+.p-ok{background:var(--green-soft);color:var(--green)}
+.p-mid{background:var(--sun-soft);color:var(--warn)}
+.p-bad{background:var(--bad-soft);color:var(--bad)}
+.p-na{background:var(--line);color:var(--muted)}
+.card-head{display:grid;grid-template-columns:118px minmax(0,1fr);gap:14px;align-items:center}
+.illus{width:118px;height:118px;border-radius:10px;background:var(--paper);border:1px solid var(--line)}
+.sci{font-style:italic;color:var(--muted);font-size:14px}
+.facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.fact{border:1px solid var(--line);border-radius:9px;padding:10px 12px;min-width:0}
+.fact .big{font-family:var(--f-display);font-size:22px;line-height:1.15}
+.fact.water{background:var(--water-soft);border-color:transparent}
+.fact.water .big{color:var(--water)}
+.fact small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+.sec h3{margin-bottom:6px}
+.sec p{margin:0 0 6px}
+.sec ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px}
+.diag{border-left:3px solid var(--bad);background:var(--bad-soft);border-radius:0 9px 9px 0;padding:10px 12px}
+.diag.ok{border-left-color:var(--green);background:var(--green-soft)}
+.diag.info{border-left-color:var(--sun);background:var(--sun-soft)}
+.diag h3{font-size:16px;margin-bottom:4px}
+.diag p,.diag li{font-size:14px}
+.alerts{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.alerts li{font-size:14px;padding:7px 10px;border-radius:8px;background:var(--sun-soft)}
+.alerts li.good{background:var(--green-soft)}
+.alerts li.bad{background:var(--bad-soft)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:99px;padding:6px 11px;font:500 13px var(--f-body);cursor:pointer}
+.chip:hover{border-color:var(--green);color:var(--green)}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+.btn{border:1px solid var(--ink);background:var(--ink);color:var(--sheet);border-radius:8px;padding:9px 14px;font:600 14px var(--f-body);cursor:pointer}
+.btn.ghost-b{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.danger{background:transparent;color:var(--bad);border-color:var(--bad)}
+.back{border:0;background:none;color:var(--muted);font:500 13px var(--f-body);cursor:pointer;padding:0;align-self:flex-start}
+label.f{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--muted)}
+select{font:500 15px var(--f-body);padding:9px 10px;border-radius:8px;border:1px solid var(--line);background:var(--paper);color:var(--ink);width:100%}
+.preview{display:grid;grid-template-columns:90px minmax(0,1fr);gap:12px;align-items:center;font-size:14px}
+.preview .illus{width:90px;height:90px}
+.check{display:flex;gap:8px;align-items:center;font-size:14px}
+.sugs{display:flex;flex-direction:column;gap:6px}
+.sug{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;border:1px solid var(--line);border-radius:9px;padding:9px 10px}
+.sug b{font-weight:600}
+.sug small{display:block;color:var(--muted);font-size:12.5px}
+
+.agenda{background:var(--sheet);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.agenda-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:baseline}
+.agenda-head p{margin:0;color:var(--muted);font-size:13.5px;max-width:70ch}
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.day{border:1px solid var(--line);border-radius:9px;padding:8px;min-height:96px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.day.today{border-color:var(--water);box-shadow:inset 0 0 0 1px var(--water)}
+.day .dh{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.wchip{display:flex;gap:6px;align-items:center;font-size:12.5px;background:var(--water-soft);color:var(--ink);border-radius:6px;padding:4px 6px;border:0;cursor:pointer;text-align:left;font-family:inherit;min-width:0}
+.wchip .num{width:20px;height:20px;font-size:11px;flex:none}
+.wchip span.t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:760px){.week{grid-template-columns:minmax(0,1fr)}.day{min-height:0;flex-direction:row;flex-wrap:wrap;align-items:center}.day .dh{width:100%}}
+.foot{font-size:12.5px;color:var(--muted);max-width:80ch}
+@media (prefers-reduced-motion:no-preference){.mk circle.dot{transition:r .15s}.mk:hover circle.dot{r:33}}
+</style>
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)} body{margin:0} img{max-width:100%} [hidden]{display:none!important}</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow">Planta baixa · cuidados · simulador</div>
+      <h1>Plantas do Apartamento</h1>
+      <p>Toque numa planta para ver espécie, rega e cuidados para este lugar e esta estação. Na aba <b>Adicionar</b>, simule novas plantas e veja onde cada espécie se dá bem.</p>
+    </div>
+    <div class="season" id="season"></div>
+  </header>
+
+  <div class="grid">
+    <section class="board" aria-label="Planta do apartamento">
+      <div class="toolbar">
+        <div class="eyebrow">Camada do mapa</div>
+        <div class="seg" role="group" aria-label="Camada do mapa">
+          <button id="ov-luz" aria-pressed="true">Luz</button>
+          <button id="ov-fit" aria-pressed="false">Onde a planta cabe</button>
+          <button id="ov-none" aria-pressed="false">Nenhuma</button>
+        </div>
+      </div>
+      <div id="banner" class="banner" hidden><span id="banner-t"></span><button id="banner-x">Cancelar</button></div>
+      <svg id="mapa" viewBox="30 140 1400 660" role="img" aria-label="Planta baixa com plantas numeradas"></svg>
+      <div class="zoneinfo" id="zoneinfo">Passe o dedo ou o mouse sobre um cômodo para ver a luz do lugar.</div>
+      <div class="legend" id="legend"></div>
+    </section>
+
+    <aside class="panel">
+      <div class="tabs" role="tablist">
+        <button role="tab" id="tab-p" aria-selected="true">Minhas plantas</button>
+        <button role="tab" id="tab-a" aria-selected="false">Adicionar</button>
+      </div>
+      <div class="pbody" id="pbody"></div>
+    </aside>
+  </div>
+
+  <section class="agenda" aria-label="Agenda de rega">
+    <div class="agenda-head">
+      <h2>Regas desta semana</h2>
+      <p>Calculado pela espécie, lugar, tamanho do vaso e estação. Antes de regar, toque a terra: se os primeiros 2 a 3 cm ainda estiverem úmidos, espere mais um dia.</p>
+    </div>
+    <div class="week" id="week"></div>
+  </section>
+
+  <p class="foot">A varanda não recebe sol direto por causa da sombra dos prédios, mas é o lugar mais claro da casa. As plantas que precisam de sol direto aparecem como "lugar ruim" em todo o apartamento. Plantas simuladas ficam salvas só neste navegador.</p>
+</div>
+
+<script>
+/* ---------- dados ---------- */
+const LUZ = ["", "Pouca luz", "Luz difusa fraca", "Luz indireta média", "Luz clara, sem sol direto", "Sol direto"];
+const MOUNTS = {chao:"No chão", floreira:"Floreira / jardineira", suspenso:"Suspensa", movel:"Sobre móvel ou prateleira"};
+const SIZES = {P:"Pequena (vaso até 15 cm)", M:"Média (vaso de 15 a 30 cm)", G:"Grande (vaso acima de 30 cm)"};
+
+const SP = {
+  samambaia:{nome:"Samambaia", sci:"Nephrolepis exaltata", kind:"fern", ideal:[3,4], tol:[2,4], q:3, f:5, umid:"alta", mounts:["suspenso","floreira","movel"], toxica:false,
+    cuidados:["Gosta de terra sempre levemente úmida, nunca encharcada.","Ar seco e calor resseca as pontas: longe de geladeira, forno e ar-condicionado.","Corte rente à base as frondes secas; ela rebrota do centro.","Adubo a cada 30 dias na primavera e no verão."]},
+  costela:{nome:"Costela-de-adão", sci:"Monstera deliciosa", kind:"monstera", ideal:[3,4], tol:[2,4], q:7, f:12, umid:"media", mounts:["chao","movel"], toxica:true,
+    cuidados:["Regue quando os 3 a 5 cm de cima secarem.","Limpe as folhas com pano úmido a cada 15 dias.","Sol direto da tarde queima as folhas.","Tutor de fibra de coco ajuda a crescer em pé."]},
+  jiboia:{nome:"Jiboia", sci:"Epipremnum aureum", kind:"trailing", ideal:[2,4], tol:[1,4], q:6, f:10, umid:"media", mounts:["suspenso","floreira","movel","chao"], toxica:true,
+    cuidados:["Regue quando a terra de cima secar; folhas murchas pedem água.","Com pouca luz perde o rajado amarelo e fica rala.","Pode podar e replantar as pontas no mesmo vaso para encher.","Confira o verso das folhas a cada 15 dias por cochonilha."]},
+  zamioculca:{nome:"Zamioculca", sci:"Zamioculcas zamiifolia", kind:"zz", ideal:[1,3], tol:[1,4], q:14, f:25, umid:"baixa", mounts:["chao","movel"], toxica:true,
+    cuidados:["Guarda água nos rizomas: excesso de rega é o maior risco.","Aguenta cantos com pouca luz.","Folhas amarelas costumam ser sinal de água demais."]},
+  espada:{nome:"Espada-de-são-jorge", sci:"Dracaena trifasciata", kind:"blades", ideal:[2,4], tol:[1,5], q:14, f:25, umid:"baixa", mounts:["chao","floreira","movel"], toxica:true,
+    cuidados:["Deixe a terra secar por completo entre regas.","Não molhe o centro da roseta.","Aguenta sol, mas o da tarde pode amarelar as pontas."]},
+  lirio:{nome:"Lírio-da-paz", sci:"Spathiphyllum wallisii", kind:"lily", ideal:[2,3], tol:[1,4], q:5, f:8, umid:"alta", mounts:["chao","movel"], toxica:true,
+    cuidados:["Avisa quando quer água: as folhas caem e voltam após a rega.","Flores aparecem com luz indireta boa.","Sol direto queima as folhas."]},
+  peperomia:{nome:"Peperômia", sci:"Peperomia obtusifolia", kind:"broad", ideal:[3,4], tol:[2,4], q:8, f:14, umid:"media", mounts:["floreira","movel","suspenso"], toxica:false,
+    cuidados:["Folhas carnudas guardam água; regue com terra seca.","Bom para mesas e prateleiras perto de janelas."]},
+  maranta:{nome:"Calathea (maranta)", sci:"Goeppertia spp.", kind:"calathea", ideal:[2,3], tol:[2,4], q:4, f:7, umid:"alta", fragil:true, mounts:["movel","chao"], toxica:false,
+    cuidados:["Pede umidade alta: banheiro com janela é ótimo.","Prefere água filtrada ou descansada; cloro mancha as pontas.","Nunca em sol direto."]},
+  bromelia:{nome:"Bromélia", sci:"Guzmania / Aechmea", kind:"rosette", ideal:[3,4], tol:[2,4], q:5, f:8, umid:"alta", mounts:["floreira","movel","chao"], toxica:false,
+    cuidados:["Mantenha um pouco de água no copo central e troque semanalmente.","Substrato só levemente úmido.","Luz clara sem sol forte."]},
+  rafis:{nome:"Palmeira-ráfis", sci:"Rhapis excelsa", kind:"palm", ideal:[2,4], tol:[1,4], q:6, f:10, umid:"media", mounts:["chao"], toxica:false,
+    cuidados:["Ótima para canto de sala perto de vidro.","Pontas secas indicam ar seco ou falta de água.","Adube na primavera e no verão."]},
+  pacova:{nome:"Pacová", sci:"Philodendron martianum", kind:"pacova", ideal:[3,4], tol:[2,4], q:5, f:8, umid:"media", mounts:["chao","floreira","movel"], toxica:true,
+    cuidados:["Meia-sombra; aguenta sol da manhã.","Pecíolos grossos guardam água, então não encharque.","Funciona bem em varanda junto à parede."]},
+  clorofito:{nome:"Clorofito", sci:"Chlorophytum comosum", kind:"spider", ideal:[2,4], tol:[1,4], q:5, f:9, umid:"media", mounts:["suspenso","floreira","movel"], toxica:false,
+    cuidados:["Solta mudas penduradas, ótimo para vaso suspenso.","Pontas marrons: água com cloro ou ar seco."]},
+  dinheiro:{nome:"Dinheiro-em-penca", sci:"Callisia repens", kind:"trailing2", ideal:[3,4], tol:[2,5], q:4, f:7, umid:"media", mounts:["suspenso","floreira"], toxica:false,
+    cuidados:["Cresce rápido e cai bonito em vaso suspenso.","Com mais sol, as folhas ficam arroxeadas."]},
+  buganvilia:{nome:"Buganvília (primavera)", sci:"Bougainvillea spectabilis", kind:"shrub", ideal:[5,5], tol:[5,5], q:5, f:9, umid:"baixa", mounts:["chao","floreira"], toxica:false,
+    cuidados:["Precisa de sol direto para florir.","Floresce mais quando a terra seca um pouco entre regas.","Pode após cada florada. Tem espinhos."]},
+  alecrim:{nome:"Alecrim", sci:"Salvia rosmarinus", kind:"herb", ideal:[5,5], tol:[4,5], q:5, f:9, umid:"baixa", mounts:["floreira","chao"], toxica:false,
+    cuidados:["Sol pleno e terra bem drenada.","Encharcamento apodrece a raiz.","Colha as pontas para ramificar."]},
+  manjericao:{nome:"Manjericão", sci:"Ocimum basilicum", kind:"herb2", ideal:[5,5], tol:[4,5], q:3, f:5, umid:"media", mounts:["floreira"], toxica:false,
+    cuidados:["Corte as flores para manter as folhas.","Em sol forte pode pedir água quase todo dia no verão."]},
+  suculentas:{nome:"Suculentas", sci:"Echeveria e afins", kind:"succ", ideal:[5,5], tol:[4,5], q:12, f:20, umid:"baixa", mounts:["floreira","movel"], toxica:false,
+    cuidados:["Terra arenosa e vaso com furo.","Regue bem e só volte a regar com a terra totalmente seca.","Na sombra estica e perde a cor."]},
+  geranio:{nome:"Gerânio", sci:"Pelargonium hortorum", kind:"shrub2", ideal:[5,5], tol:[4,5], q:5, f:8, umid:"baixa", mounts:["floreira","suspenso"], toxica:false,
+    cuidados:["Floresce com sol e regas espaçadas.","Retire flores secas para estimular novas."]},
+  ravenea:{nome:"Palmeira-ravenea (majestosa)", sci:"Ravenea rivularis", kind:"palm", ideal:[3,4], tol:[2,4], q:4, f:7, umid:"alta", fragil:true, mounts:["chao"], toxica:false,
+    cuidados:["É das palmeiras que mais bebem: terra sempre levemente úmida.","Vento resseca as pontas; deixe junto à parede.","Cresce rápido; use vaso grande e pesado.","Ar seco atrai ácaro: confira o verso das folhas."]},
+  areca:{nome:"Areca-bambu", sci:"Dypsis lutescens", kind:"palm", ideal:[3,4], tol:[2,5], q:5, f:8, umid:"media", mounts:["chao"], toxica:false,
+    cuidados:["Aguenta vento melhor que a ravenea.","Folhas amareladas pedem adubo na primavera.","Regue quando a terra de cima secar."]},
+  camedorea:{nome:"Palmeira-camedórea", sci:"Chamaedorea elegans", kind:"palm", ideal:[2,3], tol:[1,4], q:5, f:9, umid:"media", mounts:["chao","movel"], toxica:false,
+    cuidados:["Palmeira pequena que aceita pouca luz.","Bom para cantos da sala longe da janela."]},
+  xanadu:{nome:"Filodendro-xanadu", sci:"Thaumatophyllum xanadu", kind:"pacova", ideal:[3,4], tol:[2,5], q:5, f:8, umid:"media", mounts:["chao","floreira"], toxica:true,
+    cuidados:["Forma uma touceira compacta e resistente.","Aguenta vento e chuva; boa para a borda da varanda em vaso pesado."]},
+  guaimbe:{nome:"Guaimbê", sci:"Thaumatophyllum bipinnatifidum", kind:"monstera", ideal:[3,4], tol:[2,5], q:6, f:10, umid:"media", mounts:["chao"], toxica:true,
+    cuidados:["Planta brasileira, robusta e escultural.","Fica grande: precisa de vaso amplo e espaço.","Folhas recortadas resistem bem ao vento."]},
+  anturio:{nome:"Antúrio", sci:"Anthurium andraeanum", kind:"anthurium", ideal:[3,4], tol:[2,4], q:5, f:8, umid:"alta", mounts:["chao","movel","floreira"], toxica:true,
+    cuidados:["Floresce o ano todo com luz clara sem sol.","Substrato aerado; não deixe encharcar.","Borrife ao redor nos dias secos."]},
+  begonia:{nome:"Begônia", sci:"Begonia maculata, B. rex e afins", kind:"broad", ideal:[3,4], tol:[2,4], q:5, f:8, umid:"alta", fragil:true, mounts:["movel","floreira"], toxica:true,
+    cuidados:["Não molhe as folhas: regue direto na terra.","Caules quebram com vento; prefira canto abrigado.","Terra levemente úmida, nunca encharcada."]},
+  aspidistra:{nome:"Aspidistra (planta-de-ferro)", sci:"Aspidistra elatior", kind:"aspidistra", ideal:[1,3], tol:[1,4], q:8, f:14, umid:"media", mounts:["chao"], toxica:false,
+    cuidados:["Quase indestrutível: aceita sombra e esquecimento.","Folhas firmes aguentam vento."]},
+  aglaonema:{nome:"Aglaonema (café-de-salão)", sci:"Aglaonema spp.", kind:"calathea", ideal:[2,3], tol:[1,4], q:6, f:10, umid:"media", mounts:["chao","movel"], toxica:true,
+    cuidados:["As variedades rosadas pedem mais luz que as verdes.","Não gosta de frio nem de vento."]},
+  chifre:{nome:"Chifre-de-veado", sci:"Platycerium bifurcatum", kind:"staghorn", ideal:[3,4], tol:[2,4], q:5, f:8, umid:"alta", mounts:["suspenso"], toxica:false, obs:"Mergulhe a placa ou molhe o musgo de trás até encharcar, e deixe escorrer.",
+    cuidados:["Cresce fixado em placa de madeira na parede.","Não retire as folhas marrons da base: elas protegem a raiz.","Borrife nos dias quentes e secos."]},
+  orquidea:{nome:"Orquídea phalaenopsis", sci:"Phalaenopsis spp.", kind:"orchid", flower:"#E8A2C8", ideal:[3,4], tol:[2,4], q:5, f:9, umid:"alta", mounts:["suspenso","movel"], toxica:false, obs:"Regue a casca até escorrer e espere secar antes da próxima.",
+    cuidados:["Raízes precisam de ar: vaso furado ou cachepô vazado.","Não deixe água parada entre as folhas.","Depois da florada, corte a haste acima do segundo nó."]},
+  oncidium:{nome:"Orquídea chuva-de-ouro", sci:"Oncidium spp.", kind:"orchid", flower:"#E8C23A", ideal:[3,4], tol:[3,5], q:4, f:7, umid:"media", mounts:["suspenso","movel"], toxica:false, obs:"Regue a casca até escorrer; gosta de ventilação.",
+    cuidados:["Aceita mais luz que a phalaenopsis.","Ótima presa em tronco ou placa na varanda."]},
+  tillandsia:{nome:"Tilândsias (cravo-do-ar)", sci:"Tillandsia spp.", kind:"tillandsia", ideal:[3,4], tol:[2,4], q:3, f:5, umid:"media", mounts:["suspenso","movel"], toxica:false, obs:"Sem terra: borrife até molhar bem ou mergulhe 20 minutos e deixe secar de cabeça para baixo.",
+    cuidados:["Vivem do ar: precisam de ventilação para secar depois de molhadas.","A barba-de-velho é uma tilândsia: pendure e borrife.","Chuva leve faz bem; temporal pode arrancar, então prenda com arame."]},
+  ripsalis:{nome:"Ripsális (cacto-macarrão)", sci:"Rhipsalis baccifera", kind:"rhipsalis", ideal:[3,4], tol:[2,4], q:5, f:9, umid:"media", mounts:["suspenso","floreira"], toxica:false,
+    cuidados:["Cacto da mata atlântica: gosta de sombra clara, não de sol.","Substrato leve, de orquídea ou casca com terra.","Ótima pendurada balançando ao vento."]},
+  flormaio:{nome:"Flor-de-maio", sci:"Schlumbergera truncata", kind:"rhipsalis", flower:"#E0458A", ideal:[3,4], tol:[2,4], q:6, f:10, umid:"media", mounts:["suspenso","floreira","movel"], toxica:false,
+    cuidados:["Floresce no outono, quando as noites esfriam.","Não mude de lugar com botões formados, senão eles caem."]},
+  lambari:{nome:"Lambari (tradescância)", sci:"Tradescantia zebrina", kind:"trailing2", leafc:"#7D4C8E", ideal:[3,4], tol:[2,5], q:4, f:7, umid:"media", mounts:["suspenso","floreira"], toxica:false,
+    cuidados:["Cresce rápido e cai bonito.","Com mais luz fica mais roxa e prateada.","Ramos quebrados viram mudas na água."]},
+  hera:{nome:"Hera", sci:"Hedera helix", kind:"trailing", ideal:[3,4], tol:[2,4], q:5, f:8, umid:"media", mounts:["suspenso","floreira"], toxica:true,
+    cuidados:["Gosta de ar fresco; sofre com calor abafado.","Pode subir por treliça na parede."]},
+  singonio:{nome:"Singônio", sci:"Syngonium podophyllum", kind:"trailing", ideal:[3,4], tol:[2,4], q:5, f:8, umid:"media", mounts:["movel","suspenso","chao"], toxica:true,
+    cuidados:["Parecido com a jiboia no cuidado.","Variedades rosadas pedem mais luz."]},
+  pilea:{nome:"Pileia", sci:"Pilea peperomioides", kind:"broad", ideal:[3,4], tol:[2,4], q:6, f:10, umid:"media", mounts:["movel","floreira"], toxica:false,
+    cuidados:["Gire o vaso toda semana, senão ela entorta para a luz.","Solta filhotes que viram mudas."]},
+  columeia:{nome:"Columeia (peixinho)", sci:"Nematanthus wettsteinii", kind:"trailing2", flower:"#E8742C", ideal:[3,4], tol:[2,4], q:5, f:8, umid:"media", mounts:["suspenso"], toxica:false,
+    cuidados:["Flores laranjas em forma de peixinho na primavera e no verão.","Deixe a terra secar um pouco entre regas."]},
+  beijo:{nome:"Beijo-pintado", sci:"Impatiens hawkeri", kind:"shrub2", flower:"#E6579A", ideal:[3,4], tol:[2,4], q:3, f:5, umid:"media", mounts:["floreira","chao"], toxica:false,
+    cuidados:["Uma das poucas floríferas que florescem na sombra clara.","Murcha rápido com sede e volta depois da rega.","Temporal amassa as flores, mas ela se recupera em dias."]},
+  avenca:{nome:"Avenca", sci:"Adiantum raddianum", kind:"fern", ideal:[2,3], tol:[2,3], q:3, f:5, umid:"alta", fragil:true, mounts:["movel"], toxica:false,
+    cuidados:["Não pode secar nunca: terra sempre úmida.","Vento e ar seco queimam as folhinhas; melhor dentro de casa."]},
+  asplenio:{nome:"Asplênio (ninho-de-passarinho)", sci:"Asplenium nidus", kind:"nest", ideal:[3,4], tol:[2,4], q:4, f:7, umid:"alta", mounts:["chao","movel","floreira"], toxica:false,
+    cuidados:["Regue pela borda do vaso, não no centro da roseta.","Folhas largas e firmes; gosta de ar úmido."]},
+  ficus:{nome:"Fícus-lira", sci:"Ficus lyrata", kind:"tree", ideal:[4,4], tol:[3,5], q:7, f:12, umid:"media", mounts:["chao"], toxica:true,
+    cuidados:["Não gosta de mudar de lugar: escolha o canto e deixe.","Vento forte rasga as folhas grandes; fique junto à parede.","Limpe as folhas para respirarem melhor."]},
+  desconhecida:{nome:"Planta a identificar", sci:"Envie uma foto para identificar", kind:"unknown", ideal:null, q:null, f:null, umid:"media", mounts:["chao","floreira","suspenso","movel"], toxica:false, cuidados:[]}
+};
+const SP_GROUPS = [
+  ["Palmeiras", ["ravenea","areca","rafis","camedorea"]],
+  ["Folhagens para varanda", ["pacova","xanadu","guaimbe","costela","espada","ficus","asplenio","aspidistra"]],
+  ["Floridas na sombra clara", ["anturio","beijo","begonia","orquidea","oncidium","bromelia","lirio"]],
+  ["Gostam de ar (epífitas)", ["tillandsia","chifre","ripsalis","flormaio"]],
+  ["Pendentes e suspensas", ["jiboia","clorofito","dinheiro","lambari","hera","columeia","singonio","samambaia"]],
+  ["Interior", ["zamioculca","aglaonema","maranta","peperomia","pilea","avenca"]],
+  ["Precisam de sol direto", ["buganvilia","alecrim","manjericao","suculentas","geranio"]]
+];
+
+const ZONES = [
+  {id:"geladeira", nome:"Junto à geladeira", r:[300,488,120,100], luz:2, calor:true, desc:"A lateral da geladeira solta ar quente e seco."},
+  {id:"quarto-janela", nome:"Quarto, junto à janela", r:[1000,212,127,276], luz:3, desc:"Luz clara pela janela."},
+  {id:"quarto", nome:"Quarto, longe da janela", r:[789,212,211,276], luz:2, desc:"Luz difusa; a janela fica do outro lado."},
+  {id:"varanda-porta", nome:"Varanda, junto à parede e ao vidro", r:[1031,488,80,287], luz:4, abrigo:true, desc:"Luz clara sem sol direto; a parte mais protegida de chuva e vento."},
+  {id:"varanda", nome:"Varanda, perto do guarda-corpo", r:[1111,488,182,287], luz:4, vento:true, chuva:true, desc:"A luz mais forte da casa, sem sol direto por causa dos prédios. Recebe a chuva e o vento dos temporais."},
+  {id:"estar-vidro", nome:"Sala de estar, perto da varanda", r:[900,488,131,287], luz:3, desc:"Luz clara que entra pelo vidro da varanda."},
+  {id:"estar-fundo", nome:"Sala de estar, parede do corredor", r:[634,488,266,92], luz:2, desc:"Fundo da sala, longe da varanda."},
+  {id:"estar", nome:"Sala de estar, centro", r:[634,580,266,195], luz:3, desc:"Luz indireta que vem da varanda."},
+  {id:"jantar", nome:"Sala de jantar", r:[392,488,242,287], luz:2, desc:"Sem janela própria; luz que chega da sala."},
+  {id:"cozinha", nome:"Cozinha", r:[166,488,226,287], luz:2, desc:"Luz da porta e da lavanderia."},
+  {id:"lavanderia", nome:"Lavanderia", r:[166,321,226,167], luz:3, desc:"Janela com sol da manhã, mais suave."},
+  {id:"banheiro", nome:"Banheiro", r:[392,321,242,167], luz:2, umido:true, desc:"Janela pequena e ar úmido."},
+  {id:"corredor", nome:"Corredor", r:[634,321,155,167], luz:1, desc:"Sem janela."}
+];
+
+const REAL = [
+  {id:"1", sp:"samambaia", x:392, y:528, size:"M", mount:"suspenso", local:"Pendurada entre a cozinha e a sala de jantar, ao lado da geladeira",
+   diag:{tipo:"bad", t:"Folhas do lado da parede caíram", p:"A lateral da geladeira solta ar quente e seco exatamente onde ela está; o lado voltado para a parede resseca primeiro e também recebe menos luz. Isso não quer dizer que ela vai morrer: samambaia rebrota do centro quando a causa sai de perto.",
+     l:["Afaste de 50 cm a 1 m da geladeira, ou leve para um dos lugares sugeridos abaixo.","Corte rente à base as frondes secas ou totalmente amarelas.","Regue até a água sair pelo furo do vaso; pendurada, ela seca mais rápido.","Gire o vaso um quarto de volta por semana.","Agora na primavera, adubo diluído (NPK 10-10-10) a cada 30 dias."]}},
+  {id:"2", sp:"costela", x:709, y:733, size:"M", mount:"movel", local:"Sobre aparador de 50 cm na sala de estar",
+   diag:{tipo:"ok", t:"Bem posicionada", p:"Luz indireta média é o que ela prefere.",
+     l:["Se surgirem manchas amarelas secas, o sol do fim da tarde está batendo direto: recue 50 cm.","Direcione as raízes aéreas para o vaso ou para um tutor.","Primavera é a época de trocar de vaso, se as raízes saírem pelo fundo."]}},
+  {id:"3", sp:"jiboia", x:825, y:530, size:"M", mount:"movel", local:"Prateleira alta na sala de estar, parede do corredor",
+   diag:{tipo:"info", t:"No alto e com pouca luz", p:"Perto do teto o ar é mais quente, e o vaso fica fora de vista, então é fácil esquecer a rega. Com pouca luz ela cresce com folhas menores e espaçadas.",
+     l:["Confira a terra com um palito de churrasco: se sair limpo e seco, regue.","Se os ramos estiverem longos e ralos, pode e replante as pontas no mesmo vaso.","Mantenha distância da jiboia 4 até ela ser tratada."]}},
+  {id:"4", sp:"jiboia", x:825, y:345, size:"M", mount:"suspenso", local:"Pendurada no quarto, perto da porta",
+   diag:{tipo:"bad", t:"Manchas brancas: identifique antes de tratar", p:"Afaste das outras plantas, principalmente da jiboia 3. Veja qual destes casos combina:",
+     l:["Tufos de algodão no encontro das folhas e no verso, que esfarelam ao apertar: cochonilha-farinhenta, praga comum em jiboia. Limpe com cotonete e álcool 70% e aplique óleo de neem (5 ml por litro de água com 1 gota de detergente) a cada 7 dias, 3 vezes.",
+        "Pó branco fino sobre a folha, que sai ao passar o dedo: oídio, um fungo. Retire as folhas mais atacadas, deixe o lugar mais ventilado e aplique 1 colher de chá de bicarbonato por litro de água com gotas de detergente, uma vez por semana.",
+        "Mofo branco na superfície da terra: excesso de umidade. Raspe a camada de cima e deixe a terra secar mais entre as regas.",
+        "Mande uma foto de perto e eu confirmo qual é."]}},
+  {id:"5", sp:"desconhecida", x:1080, y:255, size:"M", mount:"chao", local:"Quarto, perto da janela",
+   diag:{tipo:"info", t:"Aguardando foto", p:"Ela está no ponto mais iluminado do quarto. Quando você mandar a foto, eu identifico a espécie e atualizo esta ficha com rega e cuidados.", l:[]}}
+];
+
+const SUGS = [
+  {sp:"ravenea", size:"G", mount:"chao", x:1068, y:540, why:"Junto à parede, protegida do vento que resseca as pontas."},
+  {sp:"chifre", size:"M", mount:"suspenso", x:1068, y:640, why:"Fixado em placa na parede ao lado do vidro."},
+  {sp:"orquidea", size:"P", mount:"suspenso", x:1068, y:705, why:"Em vaso vazado pendurado na parede; luz clara sem sol."},
+  {sp:"tillandsia", size:"P", mount:"suspenso", x:1080, y:765, why:"Penduradas com arame onde o ar circula."},
+  {sp:"pacova", size:"G", mount:"chao", x:1250, y:745, why:"Canto do guarda-corpo. Folhas grossas que aguentam temporal."},
+  {sp:"espada", size:"G", mount:"chao", x:1255, y:530, why:"Outro canto, em vaso pesado. Resiste a vento e chuva."},
+  {sp:"beijo", size:"M", mount:"floreira", x:1180, y:760, why:"Floreira pelo lado de dentro do guarda-corpo, para ter flor na sombra."},
+  {sp:"bromelia", size:"M", mount:"chao", x:1160, y:540, why:"Luz clara e chuva fazem bem. Troque a água do copo toda semana (dengue)."},
+  {sp:"costela", size:"G", mount:"chao", x:1180, y:645, why:"Se quiser levar a costela-de-adão: ganha luz e cresce mais."},
+  {sp:"zamioculca", size:"M", mount:"chao", x:705, y:440, why:"Aguenta o corredor sem janela."},
+  {sp:"maranta", size:"P", mount:"movel", x:590, y:440, why:"Gosta do ar úmido do banheiro."}
+];
+
+const SEASONS = {
+  primavera:{nome:"Primavera", t:"Em São Paulo, outubro traz dias mais longos, calor subindo e a volta das chuvas. É a fase de crescimento: retome a adubação a cada 30 dias, aumente as regas aos poucos e troque de vaso quem estiver apertado."},
+  verao:{nome:"Verão", t:"Calor forte e chuva de tarde. Regas mais frequentes dentro de casa; na varanda, cuidado para a chuva não encharcar os vasos sem furo."},
+  outono:{nome:"Outono", t:"Crescimento mais lento. Espace as regas e reduza o adubo."},
+  inverno:{nome:"Inverno", t:"Ar seco e frio. Regue menos, não adube e proteja as plantas da varanda do vento frio."}
+};
+function seasonOf(d){const m=d.getMonth(); if(m===11||m<=1)return"verao"; if(m<=4)return"outono"; if(m<=7)return"inverno"; return"primavera";}
+const TODAY = new Date();
+const SEASON = seasonOf(TODAY);
+
+/* ---------- estado ---------- */
+const KEY="plantas-apto-v1";
+let saved={sims:[],moves:{}};
+try{const s=JSON.parse(localStorage.getItem(KEY)||"null"); if(s&&Array.isArray(s.sims))saved=s;}catch(e){}
+const state={tab:"p", sel:null, mode:"view", moveId:null, overlay:"luz", form:{sp:"buganvilia",size:"M",mount:"chao"}};
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(saved));}catch(e){}}
+
+function plants(){
+  const r = REAL.map(p=>{const m=saved.moves[p.id]; return {...p, real:true, ox:p.x, oy:p.y, x:m?m.x:p.x, y:m?m.y:p.y, moved:!!m};});
+  const s = saved.sims.map((p,i)=>({...p, real:false, label:"N"+(i+1)}));
+  return r.concat(s);
+}
+function getPlant(id){return plants().find(p=>p.id===id);}
+
+/* ---------- avaliação ---------- */
+function zoneAt(x,y){return ZONES.find(z=>x>=z.r[0]&&x<=z.r[0]+z.r[2]&&y>=z.r[1]&&y<=z.r[1]+z.r[3])||null;}
+function fit(sp,z){
+  const s=SP[sp]; if(!s.ideal||!z)return"na";
+  if(z.luz>=s.ideal[0]&&z.luz<=s.ideal[1])return"ok";
+  if(z.luz>=s.tol[0]&&z.luz<=s.tol[1])return"mid";
+  return"bad";
+}
+function baseInterval(s){
+  if(s.q==null)return null;
+  return {verao:s.q, primavera:s.q*1.1, outono:(s.q+s.f)/2, inverno:s.f}[SEASON];
+}
+function evaluate(p){
+  const s=SP[p.sp], z=zoneAt(p.x,p.y), out={z, fit:fit(p.sp,z), alerts:[], interval:null};
+  let i=baseInterval(s);
+  if(i!=null&&z){
+    if(z.luz===5)i*=0.7; else if(z.luz===4)i*=0.9; else if(z.luz===1)i*=1.2;
+    if(z.calor)i*=0.8; if(z.vento)i*=0.9; if(z.chuva&&SEASON==="verao")i*=1.15; if(z.umido)i*=1.15;
+    if(p.mount==="suspenso")i*=0.8; else if(p.mount==="floreira")i*=0.9;
+    if(p.size==="P")i*=0.85; else if(p.size==="G")i*=1.15;
+    out.interval=Math.max(1,i);
+  }
+  if(!z){out.alerts.push({c:"bad",t:"Fora dos cômodos do mapa."});return out;}
+  if(s.ideal){
+    if(out.fit==="ok")out.alerts.push({c:"good",t:`${LUZ[z.luz]}: dentro do que a ${s.nome.toLowerCase()} gosta.`});
+    else if(out.fit==="mid"){
+      out.alerts.push({c:"",t: z.luz<s.ideal[0]?`${LUZ[z.luz]}: um pouco menos de luz do que o ideal. Ela sobrevive, mas cresce devagar.`:`${LUZ[z.luz]}: um pouco mais de luz do que o ideal. Observe se as folhas amarelam ou queimam.`});
+    } else out.alerts.push({c:"bad",t: z.luz<s.ideal[0]?`${LUZ[z.luz]}: pouca luz para esta espécie. Tende a definhar.`:`${LUZ[z.luz]}: luz forte demais para esta espécie. As folhas vão queimar.`});
+  }
+  if(z.calor)out.alerts.push({c:s.umid==="alta"?"bad":"",t:"Ar quente da geladeira por perto: resseca folhas e terra."});
+  if(z.umido&&s.umid==="alta")out.alerts.push({c:"good",t:"Ar úmido do banheiro ajuda esta espécie."});
+  if(z.umido&&s.umid==="baixa")out.alerts.push({c:"",t:"Ar úmido do banheiro: regue ainda menos para não apodrecer."});
+  if(z.vento&&s.umid==="alta")out.alerts.push({c:"",t:"Vento da varanda resseca espécies que gostam de umidade. Junto à parede ela fica mais protegida."});
+  if(z.chuva&&p.mount==="suspenso")out.alerts.push({c:"bad",t:"Vaso suspenso perto do guarda-corpo balança e pode cair em temporal. Pendure junto à parede, com gancho chumbado."});
+  if(z.chuva&&p.mount==="floreira")out.alerts.push({c:"",t:"Floreira no guarda-corpo: só com suporte parafusado e pelo lado de dentro."});
+  if(z.chuva&&p.size==="P"&&p.mount!=="floreira")out.alerts.push({c:"",t:"Vaso pequeno e leve tomba com vento. Use vaso de barro ou cimento, ou agrupe com outros."});
+  if(z.chuva&&s.umid==="baixa")out.alerts.push({c:"",t:"Chuva de temporal encharca: vaso com furo e drenagem, e pule a rega depois de chover."});
+  if(z.chuva&&(s.fragil||["lirio","samambaia"].includes(p.sp)))out.alerts.push({c:"bad",t:"Folhas delicadas rasgam e secam com vento e chuva forte. Prefira junto à parede."});
+  if(z.abrigo&&(z.luz===4))out.alerts.push({c:"good",t:"Canto abrigado: mais luz que dentro de casa, com menos risco nos temporais."});
+  if(p.mount==="suspenso")out.alerts.push({c:"",t:"Vaso suspenso seca mais rápido: perto do teto o ar é mais quente."});
+  if(!s.mounts.includes(p.mount))out.alerts.push({c:"",t:`${MOUNTS[p.mount]} não é o jeito mais comum de cultivar esta espécie.`});
+  if(s.toxica)out.alerts.push({c:"",t:"Tóxica se ingerida por pets ou crianças."});
+  return out;
+}
+function freqText(i){
+  if(i==null)return"—";
+  if(i>7){ if(i<=9)return"1× por semana"; return`1× a cada ${Math.round(i)} dias`; }
+  const n=7/i; if(n<1.25)return"1× por semana";
+  if(Math.abs(n-Math.round(n))<0.25)return`${Math.round(n)}× por semana`;
+  return`${Math.floor(n)} a ${Math.ceil(n)}× por semana`;
+}
+function bestZones(p){
+  return ZONES.filter(z=>fit(p.sp,z)==="ok"&&!z.calor&&z!==zoneAt(p.x,p.y)).slice(0,4);
+}
+
+/* ---------- ilustrações ---------- */
+function rnd(i){const x=Math.sin(i*127.1)*43758.5;return x-Math.floor(x);}
+function lf(len,w){return`M0 0 Q ${w} ${-len*.45} 0 ${-len} Q ${-w} ${-len*.45} 0 0Z`;}
+function heart(len,w){return`M0 0 C ${w*.9} ${-len*.1} ${w*.7} ${-len*.8} 0 ${-len} C ${-w*.7} ${-len*.8} ${-w*.9} ${-len*.1} 0 0Z`;}
+const G=(x,y,a,inner)=>`<g transform="translate(${x} ${y}) rotate(${a})">${inner}</g>`;
+const POT=`<path d="M62 150 H138 L130 194 H70 Z" fill="var(--pot)"/><rect x="58" y="143" width="84" height="12" rx="3" fill="var(--pot-rim)"/>`;
+function illus(kind,o={}){
+  let s="";
+  const B=[100,146];
+  switch(kind){
+    case"fern":
+      for(let i=0;i<13;i++){const a=-78+i*13,L=58+rnd(i)*22;let fr=`<path d="M0 0 L0 ${-L}" stroke="var(--leafdark)" stroke-width="1.5"/>`;
+        for(let j=1;j<10;j++){const y=-L*j/10,k=8*(1-j/11)+2;fr+=G(0,y,62,`<path d="${lf(k,2.6)}" fill="${j%2?"var(--leaf)":"var(--leaf2)"}"/>`)+G(0,y,-62,`<path d="${lf(k,2.6)}" fill="var(--leaf2)"/>`);}
+        s+=G(B[0],B[1],a,fr);}
+      break;
+    case"monstera":
+      [[-48,62],[-14,82],[20,78],[52,60]].forEach(([a,L],i)=>{
+        const rad=a*Math.PI/180,x=B[0]+Math.sin(rad)*L,y=B[1]-Math.cos(rad)*L;
+        s+=`<path d="M${B[0]} ${B[1]} Q ${B[0]+Math.sin(rad)*L*.4} ${B[1]-L*.7} ${x} ${y}" stroke="var(--leafdark)" stroke-width="3" fill="none"/>`;
+        let leaf=`<path d="M0 0 C 40 -4 48 -52 0 -72 C -48 -52 -40 -4 0 0Z" fill="${i%2?"var(--leaf)":"var(--leafdark)"}"/><path d="M0 0 L0 -68" stroke="var(--leaf2)" stroke-width="1.5"/>`;
+        for(let k=1;k<=3;k++)leaf+=`<path d="M0 ${-16*k} L38 ${-16*k-8} M0 ${-16*k} L-38 ${-16*k-8}" stroke="var(--paper)" stroke-width="3.5"/>`;
+        s+=G(x,y,a*.8,`<g transform="scale(.62)">${leaf}</g>`);});
+      break;
+    case"trailing": case"trailing2":{
+      const small=kind==="trailing2", lc=o.leafc;
+      const stems=[[78,146,40,170,30,198],[124,146,160,165,172,198],[96,146,70,120,60,95],[108,146,130,118,140,96],[88,146,55,155,48,185]];
+      stems.forEach((c,si)=>{s+=`<path d="M${c[0]} ${c[1]} Q ${c[2]} ${c[3]} ${c[4]} ${c[5]}" stroke="var(--leafdark)" stroke-width="1.6" fill="none"/>`;
+        for(let t=.12;t<=1;t+=small?.09:.16){const x=(1-t)*(1-t)*c[0]+2*(1-t)*t*c[2]+t*t*c[4],y=(1-t)*(1-t)*c[1]+2*(1-t)*t*c[3]+t*t*c[5];
+          const a=(rnd(si*10+t*20)-.5)*140+(c[5]>c[1]?160:0);
+          s+=G(x,y,a,`<path d="${small?lf(9,5):heart(17,10)}" fill="${lc?(rnd(t*7+si)>.5?lc:"#A7B9C4"):rnd(t*7+si)>.6?"var(--leaf2)":"var(--leaf)"}"/>`+(small&&o.flower&&rnd(t*13+si)>.7?`<ellipse cx="0" cy="-10" rx="4" ry="6" fill="${o.flower}"/>`:"")+(small?"":`<path d="M0 0 L0 -12" stroke="#E2D46A" stroke-width="1" opacity=".8"/>`));}});
+      break;}
+    case"zz":
+      [[-30,95],[-8,110],[14,104],[34,88]].forEach(([a,L],i)=>{let st=`<path d="M0 0 L0 ${-L}" stroke="var(--leafdark)" stroke-width="3"/>`;
+        for(let j=2;j<9;j++){const y=-L*j/9;st+=G(0,y,55,`<path d="${lf(18,6)}" fill="var(--leafdark)"/>`)+G(0,y,-55,`<path d="${lf(18,6)}" fill="var(--leaf)"/>`);}
+        s+=G(B[0],B[1],a,st);});
+      break;
+    case"blades":
+      [[-22,105],[-12,128],[-3,118],[7,132],[16,112],[26,96]].forEach(([a,L],i)=>{s+=G(B[0]+(i-2.5)*5,B[1],a,`<path d="${lf(L,9)}" fill="var(--leafdark)" stroke="#D8C85A" stroke-width="2"/><path d="M-3 ${-L*.3} l6 -4 M-3 ${-L*.5} l6 -4 M-3 ${-L*.7} l6 -4" stroke="var(--leaf2)" stroke-width="2"/>`);});
+      break;
+    case"aspidistra":
+      for(let i=0;i<9;i++){const a=-50+i*12.5;s+=G(B[0],B[1],a,`<path d="M0 0 L0 -26" stroke="var(--leafdark)" stroke-width="2"/>`+G(0,-26,0,`<path d="${lf(78,14)}" fill="${i%2?"var(--leaf)":"var(--leafdark)"}"/><path d="M0 0 L0 -72" stroke="var(--leaf2)" stroke-width="1.2"/>`));}
+      break;
+    case"anthurium":
+      for(let i=0;i<6;i++){const a=-60+i*24,L=34+rnd(i)*24;s+=G(B[0],B[1],a,`<path d="M0 0 L0 ${-L}" stroke="var(--leafdark)" stroke-width="2"/>`+G(0,-L,180,`<path d="${heart(44,26)}" fill="${i%2?"var(--leafdark)":"var(--leaf)"}"/>`));}
+      [[-14,96],[22,88]].forEach(([a,L])=>{s+=G(B[0],B[1],a,`<path d="M0 0 L0 ${-L}" stroke="var(--leaf)" stroke-width="2"/>`+G(0,-L,180,`<path d="${heart(30,20)}" fill="#D0302F"/>`)+G(0,-L+4,8,`<rect x="-2.5" y="-24" width="5" height="22" rx="2.5" fill="#EBD27A"/>`));});
+      break;
+    case"orchid":{
+      for(let i=0;i<4;i++)s+=G(B[0]+(i-1.5)*6,B[1]-2,[-70,-35,40,72][i],`<path d="${lf(46,14)}" fill="${i%2?"var(--leaf)":"var(--leafdark)"}"/>`);
+      s+=`<path d="M104 140 C 108 90 120 52 158 44" stroke="var(--leafdark)" stroke-width="2.2" fill="none"/>`;
+      const fl=o.flower||"#E8A2C8";
+      [[112,86,.9],[122,66,1],[138,52,1],[156,45,.8]].forEach(([x,y,k])=>{for(let t=0;t<5;t++)s+=G(x,y,t*72,`<ellipse cx="0" cy="${-8*k}" rx="${6*k}" ry="${8*k}" fill="${fl}"/>`);s+=`<circle cx="${x}" cy="${y}" r="${3*k}" fill="#8E3B5E"/>`;});
+      break;}
+    case"tillandsia":
+      s=`<path d="M100 0 L100 70" stroke="var(--muted)" stroke-width="1.5"/>`;
+      [[100,104,1.15],[62,140,.85],[140,146,.8]].forEach(([x,y,k],r)=>{if(r)s+=`<path d="M100 70 L${x} ${y-30*k}" stroke="var(--muted)" stroke-width="1"/>`;
+        for(let i=0;i<14;i++){const a=i*(360/14)+r*9;s+=`<g transform="translate(${x} ${y}) rotate(${a})"><path d="M0 0 Q 8 ${-20*k} ${4*k} ${-38*k}" stroke="${i%2?"#9DB7A2":"#B9CCB9"}" stroke-width="${3.4*k}" fill="none" stroke-linecap="round"/></g>`;}
+        s+=`<circle cx="${x}" cy="${y}" r="${5*k}" fill="#C46A8A"/>`;});
+      return `<svg viewBox="0 0 200 200" aria-hidden="true">${s}</svg>`;
+    case"rhipsalis":
+      for(let i=0;i<13;i++){const x0=66+i*5.5,dx=(rnd(i)-.5)*70,L=150+rnd(i+4)*40;
+        s+=`<path d="M${x0} 62 Q ${x0+dx*.3} ${70+L*.3} ${x0+dx} ${62+L*.62}" stroke="${i%2?"var(--leaf)":"var(--leaf2)"}" stroke-width="${o.flower?5:2.5}" fill="none" stroke-linecap="round" ${o.flower?'stroke-dasharray="11 2"':""}/>`;
+        if(o.flower&&i%3===0)s+=G(x0+dx,62+L*.62,dx>0?150:210,`<path d="${lf(16,5)}" fill="${o.flower}"/>`);}
+      return `<svg viewBox="0 0 200 200" aria-hidden="true"><path d="M100 0 L72 40 M100 0 L128 40" stroke="var(--muted)" stroke-width="1.3"/><path d="M66 46 H134 L128 70 H72 Z" fill="var(--pot)"/>${s}</svg>`;
+    case"nest":
+      for(let i=0;i<12;i++){const a=-82+i*15;s+=G(B[0],B[1],a,`<path d="${lf(70-Math.abs(a)/5,17)}" fill="${i%2?"var(--leaf2)":"var(--leaf)"}"/><path d="M0 0 L0 ${-62+Math.abs(a)/5}" stroke="#4A3A2A" stroke-width="1.6"/>`);}
+      break;
+    case"staghorn":
+      s=`<rect x="56" y="40" width="88" height="110" rx="6" fill="#A57A55"/><path d="M100 26 L100 40" stroke="var(--muted)" stroke-width="2"/><ellipse cx="100" cy="96" rx="34" ry="30" fill="#9AA47A"/>`;
+      [[-60,1],[-25,1.15],[20,1.1],[58,.95],[140,.9],[190,.85]].forEach(([a,k],i)=>{
+        s+=G(100,96,a,`<path d="M-7 0 L-9 ${-46*k} L-20 ${-70*k} L-12 ${-72*k} L-2 ${-52*k} L4 ${-76*k} L12 ${-74*k} L8 ${-48*k} L9 0Z" fill="${i%2?"var(--leaf)":"var(--leaf2)"}"/>`);});
+      return `<svg viewBox="0 0 200 200" aria-hidden="true">${s}</svg>`;
+    case"tree":
+      s=`<path d="M100 146 C 98 120 104 100 100 74" stroke="#7A5A3E" stroke-width="7" fill="none"/>`;
+      [[100,50,0,1.1],[78,70,-50,.95],[124,68,48,1],[84,96,-75,.85],[118,94,72,.85],[100,80,-12,.8]].forEach(([x,y,a,k],i)=>{
+        s+=G(x,y+20,a,`<path d="M0 0 C ${22*k} ${-6*k} ${30*k} ${-40*k} 0 ${-48*k} C ${-30*k} ${-40*k} ${-22*k} ${-6*k} 0 0Z" fill="${i%2?"var(--leaf)":"var(--leafdark)"}"/><path d="M0 0 L0 ${-44*k}" stroke="var(--leaf2)" stroke-width="1.4"/>`);});
+      break;
+    case"lily":
+      for(let i=0;i<8;i++){const a=-60+i*17;s+=G(B[0],B[1],a,`<path d="M0 0 L0 -30" stroke="var(--leafdark)" stroke-width="2"/>`+G(0,-30,0,`<path d="${lf(58,15)}" fill="${i%2?"var(--leaf)":"var(--leafdark)"}"/>`));}
+      s+=`<path d="M100 146 L104 70" stroke="var(--leaf)" stroke-width="2"/>`+G(104,72,8,`<path d="${lf(34,12)}" fill="#F3F2EA" stroke="#CFCFC4"/>`)+`<rect x="101" y="56" width="5" height="18" rx="2.5" fill="#E6D98A"/>`;
+      break;
+    case"broad":
+      for(let i=0;i<9;i++){const a=-70+i*17,L=30+rnd(i)*25;s+=G(B[0],B[1],a,`<path d="M0 0 L0 ${-L}" stroke="var(--leafdark)" stroke-width="2"/><ellipse cx="0" cy="${-L-12}" rx="13" ry="15" fill="${i%2?"var(--leaf)":"var(--leafdark)"}"/>`);}
+      break;
+    case"calathea":
+      for(let i=0;i<8;i++){const a=-62+i*18,L=38+rnd(i)*20;s+=G(B[0],B[1],a,`<path d="M0 0 L0 ${-L}" stroke="#7B3C5A" stroke-width="2"/>`+G(0,-L,0,`<path d="${lf(56,20)}" fill="var(--leafdark)"/><path d="M0 0 L0 -52" stroke="var(--leaf2)" stroke-width="1.5"/>`+[1,2,3,4].map(k=>`<path d="M0 ${-11*k} l10 -6 M0 ${-11*k} l-10 -6" stroke="var(--leaf2)" stroke-width="3"/>`).join("")));}
+      break;
+    case"rosette":
+      for(let i=0;i<11;i++){const a=-75+i*15;s+=G(B[0],B[1],a,`<path d="${lf(62-Math.abs(a)/4,9)}" fill="${i%2?"var(--leaf)":"var(--leafdark)"}"/>`);}
+      s+=G(100,140,0,`<path d="${lf(60,13)}" fill="#D2433F"/>`)+G(100,140,-14,`<path d="${lf(46,9)}" fill="#E36A55"/>`)+G(100,140,14,`<path d="${lf(46,9)}" fill="#E36A55"/>`);
+      break;
+    case"palm":
+      [[-32,92],[-14,112],[2,124],[18,108],[34,90]].forEach(([a,L],i)=>{let f=`<path d="M0 0 L0 ${-L}" stroke="var(--leafdark)" stroke-width="2"/>`;
+        for(let k=-3;k<=3;k++)f+=G(0,-L,k*22,`<path d="${lf(30,4)}" fill="${k%2?"var(--leaf)":"var(--leafdark)"}"/>`);s+=G(B[0],B[1],a,f);});
+      break;
+    case"pacova":
+      [[-50,40],[-22,52],[4,58],[30,50],[56,40]].forEach(([a,L],i)=>{s+=G(B[0],B[1],a,`<path d="M0 0 L0 ${-L}" stroke="var(--leaf2)" stroke-width="5" stroke-linecap="round"/>`+G(0,-L,0,`<path d="${lf(70,20)}" fill="${i%2?"var(--leaf)":"var(--leafdark)"}"/><path d="M0 0 L0 -64" stroke="var(--leaf2)" stroke-width="1.5"/>`));});
+      break;
+    case"spider":
+      for(let i=0;i<12;i++){const dir=i%2?1:-1,L=40+rnd(i)*45,ex=100+dir*(20+rnd(i+3)*60);
+        s+=`<path d="M${100+dir*3} 146 Q ${100+dir*10} ${146-L} ${ex} ${150-L*.35}" stroke="var(--leaf)" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M${100+dir*3} 146 Q ${100+dir*10} ${146-L} ${ex} ${150-L*.35}" stroke="#F1F0E4" stroke-width="1.3" fill="none"/>`;}
+      break;
+    case"shrub": case"shrub2":
+      for(let i=0;i<34;i++){const a=rnd(i)*Math.PI,r=20+rnd(i+9)*48,x=100+Math.cos(a)*r*1.1,y=140-Math.sin(a)*r*1.05;
+        s+=kind==="shrub"?G(x,y,rnd(i+2)*360,`<path d="${lf(14,6)}" fill="${i%3?"var(--leaf)":"var(--leafdark)"}"/>`):`<circle cx="${x}" cy="${y}" r="9" fill="${i%3?"var(--leaf)":"var(--leafdark)"}"/>`;}
+      for(let i=0;i<(kind==="shrub"?14:5);i++){const a=.2+rnd(i+40)*2.7,r=30+rnd(i+50)*42,x=100+Math.cos(a)*r,y=132-Math.sin(a)*r;
+        s+=kind==="shrub"?[0,120,240].map(t=>G(x,y,t,`<path d="${lf(10,6)}" fill="var(--flower)"/>`)).join(""):`<circle cx="${x}" cy="${y-12}" r="11" fill="${o.flower||"#D93B33"}"/><circle cx="${x-4}" cy="${y-15}" r="4" fill="#F5E6EC" opacity=".7"/>`;}
+      break;
+    case"herb": case"herb2":
+      for(let i=0;i<7;i++){const x=78+i*7.5,L=60+rnd(i)*40,a=(i-3)*4;let st=`<path d="M0 0 L0 ${-L}" stroke="var(--leafdark)" stroke-width="1.8"/>`;
+        for(let j=1;j<10;j++){const y=-L*j/10;st+=kind==="herb"?G(0,y,70,`<path d="${lf(9,1.6)}" fill="var(--leafdark)"/>`)+G(0,y,-70,`<path d="${lf(9,1.6)}" fill="var(--leaf)"/>`):(j%2?G(0,y,55,`<path d="${lf(15,7)}" fill="var(--leaf2)"/>`)+G(0,y,-55,`<path d="${lf(15,7)}" fill="var(--leaf)"/>`):"");}
+        s+=G(x,146,a,st);}
+      break;
+    case"succ":
+      [[72,132,1],[104,126,1.25],[132,134,.95],[90,140,.8],[120,141,.8]].forEach(([x,y,k],r)=>{
+        for(let i=0;i<10;i++)s+=G(x,y,i*36,`<path d="${lf(19*k,8*k)}" fill="${r%2?"#86B39A":"#9CC3A8"}" stroke="#C47A8E" stroke-width="1"/>`);
+        for(let i=0;i<6;i++)s+=G(x,y,i*60+18,`<path d="${lf(10*k,5*k)}" fill="#B3D5BE"/>`);});
+      return `<svg viewBox="0 0 200 200" aria-hidden="true"><path d="M48 140 H152 L144 180 H56 Z" fill="var(--pot)"/><rect x="44" y="134" width="112" height="10" rx="3" fill="var(--pot-rim)"/>${s}</svg>`;
+    default:
+      s=`<path d="M100 146 C 70 110 70 80 92 60 M100 146 C 130 110 135 85 118 66" stroke="var(--muted)" stroke-width="2" stroke-dasharray="5 5" fill="none"/><text x="100" y="118" text-anchor="middle" font-family="Young Serif, Georgia, serif" font-size="56" fill="var(--muted)">?</text>`;
+  }
+  return `<svg viewBox="0 0 200 200" aria-hidden="true">${s}${POT}</svg>`;
+}
+
+/* ---------- mapa ---------- */
+const svg=document.getElementById("mapa");
+const NS="http://www.w3.org/2000/svg";
+function staticMap(){
+  const rooms=[[166,321,226,167,"Lavanderia"],[392,321,242,167,"Banheiro"],[634,321,155,167,"Corredor"],[789,212,338,276,"Quarto"],
+    [166,488,226,287,"Cozinha"],[392,488,242,287,"Sala de Jantar"],[634,488,397,287,"Sala de Estar"],[1031,488,262,287,"Varanda"]];
+  const wins=[[206,311,146,20],[383,341,19,66],[1116,301,19,146],[1021,505,19,244]];
+  const doors=[[192,478,166,19],[157,673,20,76],[623,392,19,76],[779,392,19,76]];
+  const ray=(cx,cy)=>Array.from({length:12},(_,i)=>{const a=i*Math.PI/6;return`<line class="sunray" x1="${cx+Math.cos(a)*34}" y1="${cy+Math.sin(a)*34}" x2="${cx+Math.cos(a)*46}" y2="${cy+Math.sin(a)*46}"/>`}).join("");
+  svg.innerHTML=`<g id="ov"></g>
+    ${rooms.map(r=>`<rect class="room" x="${r[0]}" y="${r[1]}" width="${r[2]}" height="${r[3]}"/>`).join("")}
+    ${rooms.map(r=>`<text class="rlabel" x="${r[0]+r[2]/2}" y="${r[1]+r[3]/2+(r[4]==="Sala de Estar"?50:0)}" text-anchor="middle">${r[4]}</text>`).join("")}
+    ${wins.map(w=>`<rect class="win" x="${w[0]}" y="${w[1]}" width="${w[2]}" height="${w[3]}"/>`).join("")}
+    ${doors.map(d=>`<rect class="door" x="${d[0]}" y="${d[1]}" width="${d[2]}" height="${d[3]}"/>`).join("")}
+    <rect class="fridge" x="324" y="494" width="62" height="64" rx="4"/><text class="fridge-t" x="355" y="530" text-anchor="middle">geladeira</text>
+    <path class="sunpath" d="M100 232 C 300 560 450 700 640 690 S 1100 610 1332 522"/>
+    <circle class="sunbody" cx="92" cy="198" r="28"/>${ray(92,198)}<text class="sunlbl" x="140" y="200">manhã</text>
+    <circle class="sunbody" cx="1372" cy="508" r="28"/>${ray(1372,508)}<text class="sunlbl" x="1372" y="578" text-anchor="middle">tarde</text>
+    <g id="ghost"></g><g id="mk"></g>`;
+}
+staticMap();
+
+function renderOverlay(){
+  const g=document.getElementById("ov"); let h="";
+  const sp=currentSpecies();
+  ZONES.forEach(z=>{
+    const [x,y,w,hh]=z.r; let fill="none",op=0;
+    if(state.overlay==="luz"){fill="var(--sun)";op=[0,.04,.12,.24,.38,.56][z.luz];}
+    else if(state.overlay==="fit"&&sp){const f=fit(sp,z);fill=f==="ok"?"var(--green)":f==="mid"?"var(--sun)":"var(--bad)";op=f==="ok"?.3:f==="mid"?.2:.08;}
+    if(z.id==="geladeira"&&state.overlay!=="none")h+=`<rect x="${x}" y="${y}" width="${w}" height="${hh}" fill="var(--bad)" opacity=".12"/>`;
+    else if(op)h+=`<rect x="${x}" y="${y}" width="${w}" height="${hh}" fill="${fill}" opacity="${op}"/>`;
+  });
+  g.innerHTML=h;
+  const L=document.getElementById("legend");
+  if(state.overlay==="luz")L.innerHTML=[1,2,3,4,5].map(n=>`<span><i class="sw" style="background:color-mix(in srgb,var(--sun) ${[0,6,18,34,52,75][n]}%,var(--sheet))"></i>${LUZ[n]}</span>`).join("")+`<span><i class="sw" style="background:color-mix(in srgb,var(--bad) 18%,var(--sheet))"></i>Calor da geladeira</span>`;
+  else if(state.overlay==="fit")L.innerHTML=sp?`<span><b style="color:var(--ink)">${SP[sp].nome}:</b></span><span><i class="sw" style="background:color-mix(in srgb,var(--green) 40%,var(--sheet))"></i>Ideal</span><span><i class="sw" style="background:color-mix(in srgb,var(--sun) 30%,var(--sheet))"></i>Aceitável</span><span><i class="sw" style="background:color-mix(in srgb,var(--bad) 12%,var(--sheet))"></i>Inadequado</span>`:`<span>Escolha uma planta ou uma espécie na aba Adicionar.</span>`;
+  else L.innerHTML="";
+}
+function currentSpecies(){
+  if(state.sel){const p=getPlant(state.sel); if(p&&SP[p.sp].ideal)return p.sp;}
+  if(state.tab==="a")return state.form.sp;
+  return null;
+}
+const ringColor=f=>f==="ok"?"var(--green)":f==="mid"?"var(--sun)":f==="bad"?"var(--bad)":"var(--line)";
+function renderMarkers(){
+  const g=document.getElementById("mk"), gh=document.getElementById("ghost"); let h="",gg="";
+  plants().forEach(p=>{
+    const e=evaluate(p);
+    if(p.real&&p.moved){gg+=`<circle class="ghost" cx="${p.ox}" cy="${p.oy}" r="24"/><line class="ghostline" x1="${p.ox}" y1="${p.oy}" x2="${p.x}" y2="${p.y}"/>`;}
+    const alert=p.real&&p.diag&&p.diag.tipo==="bad";
+    h+=`<g class="mk ${p.real?"":"sim"} ${state.sel===p.id?"sel":""}" data-id="${p.id}" tabindex="0" role="button" aria-label="${p.real?"Planta "+p.id:"Simulada "+p.label}: ${SP[p.sp].nome}">
+      <circle class="halo" cx="${p.x}" cy="${p.y}" r="44"/>
+      <circle class="ring" cx="${p.x}" cy="${p.y}" r="36" stroke="${ringColor(e.fit)}"/>
+      <circle class="dot" cx="${p.x}" cy="${p.y}" r="30"/>
+      <text x="${p.x}" y="${p.y}">${p.real?p.id:p.label}</text>
+      ${alert?`<circle class="alert" cx="${p.x+24}" cy="${p.y-24}" r="9"/>`:""}</g>`;
+  });
+  g.innerHTML=h; gh.innerHTML=gg;
+}
+function svgPoint(ev){const pt=svg.createSVGPoint();pt.x=ev.clientX;pt.y=ev.clientY;return pt.matrixTransform(svg.getScreenCTM().inverse());}
+svg.addEventListener("click",ev=>{
+  const mk=ev.target.closest(".mk");
+  const pt=svgPoint(ev), z=zoneAt(pt.x,pt.y);
+  if(state.mode==="place"||state.mode==="move"){
+    if(!z){showZone(null,true);return;}
+    const x=Math.round(pt.x),y=Math.round(pt.y);
+    if(state.mode==="place"){const f=state.form;const id="s"+Date.now();saved.sims.push({id,sp:f.sp,size:f.size,mount:f.mount,x,y,owned:false});state.sel=id;}
+    else{const p=getPlant(state.moveId); if(p.real)saved.moves[p.id]={x,y}; else{const s=saved.sims.find(s=>s.id===p.id);s.x=x;s.y=y;} state.sel=p.id;}
+    persist(); state.mode="view"; state.tab="p"; state.overlay="fit"; render(); return;
+  }
+  if(mk){select(mk.dataset.id);return;}
+  showZone(z);
+});
+svg.addEventListener("keydown",ev=>{const mk=ev.target.closest(".mk");if(mk&&(ev.key==="Enter"||ev.key===" ")){ev.preventDefault();select(mk.dataset.id);}});
+svg.addEventListener("pointermove",ev=>{const pt=svgPoint(ev);showZone(zoneAt(pt.x,pt.y));});
+function showZone(z,miss){
+  const el=document.getElementById("zoneinfo");
+  if(miss){el.innerHTML="Toque dentro de um cômodo.";return;}
+  if(!z)return;
+  el.innerHTML=`<b>${z.nome}</b> · ${LUZ[z.luz]}. ${z.desc}`;
+}
+function select(id){state.sel=id;state.tab="p";state.mode="view";if(state.overlay!=="none")state.overlay="fit";render();
+  if(window.matchMedia("(max-width:900px)").matches)document.querySelector(".panel").scrollIntoView({behavior:"smooth",block:"start"});}
+
+/* ---------- painel ---------- */
+const pillFor=f=>f==="ok"?`<span class="pill p-ok">Lugar ideal</span>`:f==="mid"?`<span class="pill p-mid">Aceitável</span>`:f==="bad"?`<span class="pill p-bad">Lugar ruim</span>`:`<span class="pill p-na">A identificar</span>`;
+function renderPanel(){
+  document.getElementById("tab-p").setAttribute("aria-selected",state.tab==="p");
+  document.getElementById("tab-a").setAttribute("aria-selected",state.tab==="a");
+  const b=document.getElementById("pbody");
+  if(state.tab==="a"){b.innerHTML=addForm();bindAdd();return;}
+  if(state.sel&&getPlant(state.sel)){b.innerHTML=plantCard(getPlant(state.sel));bindCard();return;}
+  state.sel=null;
+  const ps=plants();
+  b.innerHTML=`<div class="sec"><h3>Suas plantas</h3><p style="color:var(--muted);font-size:14px">O anel em volta de cada número mostra se o lugar é bom para a espécie. O ponto vermelho indica um problema a tratar.</p></div>
+  <ul class="list">${ps.map(p=>{const e=evaluate(p);return`<li><button class="row" data-open="${p.id}"><span class="num ${p.real?"":"sim"}">${p.real?p.id:p.label}</span><span>${SP[p.sp].nome}${p.real&&p.diag.tipo==="bad"?` <span class="pill p-bad">${p.id==="1"?"Folhas caindo":"Manchas brancas"}</span>`:""}<small>${e.z?e.z.nome:"—"} · <span class="mono">${freqText(e.interval)}</span></small></span>${pillFor(e.fit)}</button></li>`}).join("")}</ul>
+  ${saved.sims.length?"":`<p style="font-size:14px;color:var(--muted);margin:0">Quer testar plantas novas? Use a aba <b>Adicionar</b>.</p>`}`;
+  b.querySelectorAll("[data-open]").forEach(x=>x.onclick=()=>select(x.dataset.open));
+}
+function plantCard(p){
+  const s=SP[p.sp], e=evaluate(p), best=bestZones(p);
+  const d=p.real?p.diag:null;
+  return `<button class="back" id="back">← Todas as plantas</button>
+  <div class="card-head"><div class="illus">${illus(s.kind,s)}</div>
+    <div><div class="eyebrow">${p.real?"Planta "+p.id:"Simulação "+p.label}${p.moved?" · em novo lugar":""}</div><h2>${s.nome}</h2><div class="sci">${s.sci}</div><div style="margin-top:6px">${pillFor(e.fit)}</div></div></div>
+  <div class="facts">
+    <div class="fact water"><div class="eyebrow">Rega · ${SEASONS[SEASON].nome.toLowerCase()}</div><div class="big mono">${freqText(e.interval)}</div><small>${e.interval?`cerca de a cada ${Math.round(e.interval*2)/2} dias`:"defina a espécie"}${s.obs?". "+s.obs:""}</small></div>
+    <div class="fact"><div class="eyebrow">Luz no lugar</div><div class="big">${e.z?LUZ[e.z.luz]:"—"}</div><small>${e.z?e.z.nome:""}</small></div>
+    <div class="fact"><div class="eyebrow">Como está</div><div style="font-weight:600">${MOUNTS[p.mount]}</div><small>${SIZES[p.size]}</small></div>
+    <div class="fact"><div class="eyebrow">Gosta de</div><div style="font-weight:600">${s.ideal?LUZ[s.ideal[0]]+(s.ideal[1]!==s.ideal[0]?" a "+LUZ[s.ideal[1]].toLowerCase():""):"—"}</div><small>Umidade do ar ${s.umid==="alta"?"alta":s.umid==="baixa"?"baixa":"média"}</small></div>
+  </div>
+  ${p.real?`<div class="sec"><div class="eyebrow">Onde está</div><p>${p.local}</p></div>`:""}
+  ${d?`<div class="diag ${d.tipo==="ok"?"ok":d.tipo==="info"?"info":""}"><h3>${d.t}</h3><p>${d.p}</p>${d.l.length?`<ul>${d.l.map(x=>`<li>${x}</li>`).join("")}</ul>`:""}</div>`:""}
+  <div class="sec"><h3>Avaliação do lugar</h3><ul class="alerts">${e.alerts.map(a=>`<li class="${a.c}">${a.t}</li>`).join("")}</ul></div>
+  ${s.cuidados.length?`<div class="sec"><h3>Cuidados da espécie</h3><ul>${s.cuidados.map(x=>`<li>${x}</li>`).join("")}</ul></div>`:""}
+  <div class="sec"><h3>Nesta estação</h3><p style="font-size:14px">${SEASONS[SEASON].t}</p></div>
+  ${s.ideal&&best.length?`<div class="sec"><h3>${p.real?"Lugares melhores para mudar":"Outros lugares ideais"}</h3><p style="font-size:13.5px;color:var(--muted)">Toque para simular a planta lá. O lugar original continua marcado no mapa.</p><div class="chips">${best.map(z=>`<button class="chip" data-zone="${z.id}">${z.nome}</button>`).join("")}</div></div>`:""}
+  <div class="btns">
+    ${s.ideal?`<button class="btn" id="move">Simular em outro lugar</button>`:""}
+    ${p.real&&p.moved?`<button class="btn ghost-b" id="reset">Voltar ao lugar atual</button>`:""}
+    ${!p.real?`<label class="check"><input type="checkbox" id="owned" ${p.owned?"checked":""}> Já tenho esta planta (entra na agenda)</label><button class="btn danger" id="del">Remover simulação</button>`:""}
+  </div>`;
+}
+function bindCard(){
+  const p=getPlant(state.sel);
+  document.getElementById("back").onclick=()=>{state.sel=null;state.overlay="luz";render();};
+  const mv=document.getElementById("move"); if(mv)mv.onclick=()=>{state.mode="move";state.moveId=p.id;state.overlay="fit";render();};
+  const rs=document.getElementById("reset"); if(rs)rs.onclick=()=>{delete saved.moves[p.id];persist();render();};
+  const dl=document.getElementById("del"); if(dl)dl.onclick=()=>{saved.sims=saved.sims.filter(s=>s.id!==p.id);persist();state.sel=null;render();};
+  const ow=document.getElementById("owned"); if(ow)ow.onchange=()=>{saved.sims.find(s=>s.id===p.id).owned=ow.checked;persist();render();};
+  document.querySelectorAll("[data-zone]").forEach(c=>c.onclick=()=>{
+    const z=ZONES.find(z=>z.id===c.dataset.zone);const x=Math.round(z.r[0]+z.r[2]/2),y=Math.round(z.r[1]+z.r[3]/2);
+    if(p.real)saved.moves[p.id]={x,y};else{const s=saved.sims.find(s=>s.id===p.id);s.x=x;s.y=y;}persist();render();});
+}
+function addForm(){
+  const f=state.form,s=SP[f.sp];
+  const okZones=ZONES.filter(z=>fit(f.sp,z)==="ok"&&!z.calor);
+  return `<div class="sec"><h3>Simular nova planta</h3><p style="font-size:14px;color:var(--muted)">Escolha a espécie, o tamanho e como ela vai ficar. O mapa pinta em verde os lugares ideais.</p></div>
+  <label class="f" for="f-sp">Espécie<select id="f-sp">${SP_GROUPS.map(([g,ids])=>`<optgroup label="${g}">${ids.map(id=>`<option value="${id}" ${id===f.sp?"selected":""}>${SP[id].nome}</option>`).join("")}</optgroup>`).join("")}</select></label>
+  <div class="preview"><div class="illus">${illus(s.kind,s)}</div><div><i class="sci">${s.sci}</i><br>Gosta de ${LUZ[s.ideal[0]].toLowerCase()}${s.ideal[1]!==s.ideal[0]?" a "+LUZ[s.ideal[1]].toLowerCase():""}.<br><span style="color:var(--muted);font-size:13px">Ideal em: ${okZones.map(z=>z.nome).join("; ")||"nenhum cômodo"}</span></div></div>
+  <div><div class="eyebrow" style="margin-bottom:6px">Tamanho</div><div class="seg" role="group" aria-label="Tamanho">${Object.keys(SIZES).map(k=>`<button data-size="${k}" aria-pressed="${f.size===k}">${{P:"Pequena",M:"Média",G:"Grande"}[k]}</button>`).join("")}</div></div>
+  <div><div class="eyebrow" style="margin-bottom:6px">Onde fica</div><div class="seg" role="group" aria-label="Montagem" style="flex-wrap:wrap">${Object.keys(MOUNTS).map(k=>`<button data-mount="${k}" aria-pressed="${f.mount===k}">${{chao:"Chão",floreira:"Floreira",suspenso:"Suspensa",movel:"Móvel"}[k]}</button>`).join("")}</div></div>
+  <button class="btn" id="place">Escolher lugar no mapa</button>
+  <div class="diag info"><h3>Varanda e temporais</h3><ul>
+    <li>Monte as plantas junto à parede e ao vidro; perto do guarda-corpo, só vasos grandes e pesados.</li>
+    <li>Prefira vasos de barro, cimento ou fibra pesada, largos na base. Plástico leve tomba.</li>
+    <li>Todo vaso com furo e camada de argila expandida no fundo, para a chuva escoar.</li>
+    <li>Floreira no guarda-corpo só pelo lado de dentro e parafusada. Gancho de vaso suspenso chumbado no teto ou na parede.</li>
+    <li>Com alerta de temporal, recolha para dentro os vasos suspensos e os pequenos.</li>
+    <li>Depois de chover, esvazie pratinhos e pule a rega das plantas que tomaram chuva.</li>
+  </ul></div>
+  <div class="sec"><h3>Ideias para a varanda e a casa</h3><p style="font-size:13.5px;color:var(--muted)">Combinações que funcionam com a luz de cada canto. Toque em Adicionar para colocar no mapa.</p>
+  <div class="sugs">${SUGS.map((g,i)=>`<div class="sug"><div><b>${SP[g.sp].nome}</b> · ${MOUNTS[g.mount].toLowerCase()}<small>${g.why}</small></div><button class="chip" data-sug="${i}">Adicionar</button></div>`).join("")}</div></div>`;
+}
+function bindAdd(){
+  document.getElementById("f-sp").onchange=e=>{state.form.sp=e.target.value;const s=SP[e.target.value];if(!s.mounts.includes(state.form.mount))state.form.mount=s.mounts[0];state.overlay="fit";render();};
+  document.querySelectorAll("[data-size]").forEach(b=>b.onclick=()=>{state.form.size=b.dataset.size;render();});
+  document.querySelectorAll("[data-mount]").forEach(b=>b.onclick=()=>{state.form.mount=b.dataset.mount;render();});
+  document.getElementById("place").onclick=()=>{state.mode="place";state.overlay="fit";render();svg.scrollIntoView({behavior:"smooth",block:"center"});};
+  document.querySelectorAll("[data-sug]").forEach(b=>b.onclick=()=>{const g=SUGS[+b.dataset.sug];const id="s"+Date.now();saved.sims.push({id,sp:g.sp,size:g.size,mount:g.mount,x:g.x,y:g.y,owned:false});persist();select(id);});
+}
+
+/* ---------- agenda ---------- */
+function renderWeek(){
+  const dow=(TODAY.getDay()+6)%7, mon=new Date(TODAY); mon.setDate(TODAY.getDate()-dow);
+  const days=Array.from({length:7},(_,i)=>[]);
+  plants().filter(p=>p.real||p.owned).forEach(p=>{
+    const e=evaluate(p); if(!e.interval)return;
+    const k=e.interval>7?1:Math.max(1,Math.round(7/e.interval));
+    const start=(+String(p.id).replace(/\D/g,"").slice(-1))%2; // espalha as plantas
+    for(let j=0;j<k;j++)days[(Math.round(j*7/k)+start)%7].push(p);
+  });
+  const names=["seg","ter","qua","qui","sex","sáb","dom"];
+  document.getElementById("week").innerHTML=days.map((ps,i)=>{const d=new Date(mon);d.setDate(mon.getDate()+i);
+    return`<div class="day ${i===dow?"today":""}"><div class="dh"><span>${names[i]}${i===dow?" · hoje":""}</span><span class="mono">${d.getDate()}/${d.getMonth()+1}</span></div>
+    ${ps.map(p=>`<button class="wchip" data-open="${p.id}"><span class="num ${p.real?"":"sim"}">${p.real?p.id:p.label}</span><span class="t">${SP[p.sp].nome}</span></button>`).join("")||`<span style="font-size:12.5px;color:var(--muted)">Sem rega</span>`}</div>`}).join("");
+  document.querySelectorAll("#week [data-open]").forEach(x=>x.onclick=()=>{select(x.dataset.open);document.querySelector(".grid").scrollIntoView({behavior:"smooth"});});
+}
+
+/* ---------- geral ---------- */
+function render(){
+  ["luz","fit","none"].forEach(k=>document.getElementById("ov-"+k).setAttribute("aria-pressed",state.overlay===k));
+  const bn=document.getElementById("banner");
+  bn.hidden=state.mode==="view";
+  svg.classList.toggle("placing",state.mode!=="view");
+  if(state.mode==="place")document.getElementById("banner-t").textContent=`Toque no mapa onde a ${SP[state.form.sp].nome.toLowerCase()} ficaria.`;
+  if(state.mode==="move"){const p=getPlant(state.moveId);document.getElementById("banner-t").textContent=`Toque no novo lugar para ${SP[p.sp].nome.toLowerCase()} ${p.real?p.id:p.label}.`;}
+  renderOverlay();renderMarkers();renderPanel();renderWeek();
+}
+document.getElementById("season").innerHTML=`<div><div class="eyebrow">Estação agora</div><b>${SEASONS[SEASON].nome}</b><p>${SEASONS[SEASON].t}</p></div>`;
+document.getElementById("ov-luz").onclick=()=>{state.overlay="luz";render();};
+document.getElementById("ov-fit").onclick=()=>{state.overlay="fit";render();};
+document.getElementById("ov-none").onclick=()=>{state.overlay="none";render();};
+document.getElementById("tab-p").onclick=()=>{state.tab="p";render();};
+document.getElementById("tab-a").onclick=()=>{state.tab="a";state.sel=null;state.overlay="fit";render();};
+document.getElementById("banner-x").onclick=()=>{state.mode="view";render();};
+render();
+</script>
+
+<script>if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});</script>
+</body>
+</html>
